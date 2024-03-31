@@ -1,6 +1,0 @@
-
-# Run
-
-```bash
-make -i
-```

@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/googollee/go-socket.io/engineio/session"
+	"github.com/m4rc0nd35/go-socket.io/engineio/session"
 )
 
 // Conn is connection by client session
@@ -21,4 +21,5 @@ type Conn interface {
 	RemoteHeader() http.Header
 	SetContext(v interface{})
 	Context() interface{}
+	Done() <-chan struct{}
 }

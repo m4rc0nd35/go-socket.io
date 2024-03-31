@@ -1,15 +1,19 @@
 package logger
 
 import (
-	"golang.org/x/exp/slog"
+	"log"
+	"os"
+
+	"github.com/go-logr/logr"
+	"github.com/go-logr/stdr"
 )
 
-var Log *slog.Logger = slog.Default()
+var l = stdr.New(log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile))
 
-func Error(msg string, err error) {
-	Log.Error(msg, "err", err.Error())
+func ReplaceLogger(logger logr.Logger) {
+	l = logger
 }
 
-func Info(msg string, args ...interface{}) {
-	Log.Info(msg, args...)
+func GetLogger(name string) logr.Logger {
+	return l.WithName(name)
 }

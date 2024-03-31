@@ -6,8 +6,7 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/googollee/go-socket.io/engineio/session"
-	"github.com/googollee/go-socket.io/logger"
+	"github.com/m4rc0nd35/go-socket.io/engineio/session"
 )
 
 type FrameWriter interface {
@@ -26,37 +25,28 @@ func NewEncoder(w FrameWriter) *Encoder {
 
 func (e *Encoder) Encode(h Header, args ...interface{}) (err error) {
 	var w io.WriteCloser
-	w, err = e.w.NextWriter(session.TEXT)
+	w, err = e.w.NextWriter(session.BINARY)
 	if err != nil {
-		logger.Error("next writer session text:", err)
-
 		return
 	}
 
 	var buffers [][]byte
 	buffers, err = e.writePacket(w, h, args)
 	if err != nil {
-		logger.Error("write packet header with args:", err)
-
 		return
 	}
 
 	for _, b := range buffers {
 		w, err = e.w.NextWriter(session.BINARY)
 		if err != nil {
-			logger.Error("next writer session binary:", err)
-
 			return
 		}
 
 		err = e.writeBuffer(w, b)
 		if err != nil {
-			logger.Error("write packet buffer:", err)
-
 			return
 		}
 	}
-
 	return
 }
 
@@ -71,9 +61,7 @@ type flusher interface {
 
 func (e *Encoder) writePacket(w io.WriteCloser, h Header, args []interface{}) ([][]byte, error) {
 	defer func() {
-		if err := w.Close(); err != nil {
-			logger.Error("close writer:", err)
-		}
+		_ = w.Close()
 	}()
 
 	bw, ok := w.(byteWriter)
@@ -205,9 +193,7 @@ func (e *Encoder) attachBuffer(v reflect.Value, index *uint64) ([][]byte, error)
 
 func (e *Encoder) writeBuffer(w io.WriteCloser, buffer []byte) error {
 	defer func() {
-		if closeErr := w.Close(); closeErr != nil {
-			logger.Error("close writer:", closeErr)
-		}
+		_ = w.Close()
 	}()
 
 	_, err := w.Write(buffer)

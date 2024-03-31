@@ -5,17 +5,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"sync/atomic"
 
-	"github.com/googollee/go-socket.io/engineio/packet"
-	"github.com/googollee/go-socket.io/engineio/payload"
-	"github.com/googollee/go-socket.io/engineio/transport"
-	"github.com/googollee/go-socket.io/engineio/transport/utils"
-	"github.com/googollee/go-socket.io/logger"
+	"github.com/m4rc0nd35/go-socket.io/engineio/packet"
+	"github.com/m4rc0nd35/go-socket.io/engineio/payload"
+	"github.com/m4rc0nd35/go-socket.io/engineio/transport"
+	"github.com/m4rc0nd35/go-socket.io/engineio/transport/utils"
+	"github.com/m4rc0nd35/go-socket.io/logger"
 )
 
 type clientConn struct {
@@ -35,23 +34,19 @@ func (c *clientConn) Open() (transport.ConnParameters, error) {
 	}
 
 	if pt != packet.OPEN {
-		if err = r.Close(); err != nil {
-			logger.Error("close transport reader:", err)
-		}
-
+		_ = r.Close()
 		return transport.ConnParameters{}, errors.New("invalid open")
 	}
 
 	conn, err := transport.ReadConnParameters(r)
 	if err != nil {
-		if closeErr := r.Close(); closeErr != nil {
-			logger.Error("close transport reader:", err)
-		}
-
+		_ = r.Close()
 		return transport.ConnParameters{}, err
 	}
 
-	if err = r.Close(); err != nil {
+	err = r.Close()
+
+	if err != nil {
 		return transport.ConnParameters{}, err
 	}
 
@@ -100,7 +95,8 @@ func (c *clientConn) servePost() {
 	req.Method = http.MethodPost
 
 	var buf bytes.Buffer
-	req.Body = ioutil.NopCloser(&buf)
+	req.Body = io.NopCloser(&buf)
+	var ll = logger.GetLogger("engineio.transport.polling")
 
 	query := reqUrl.Query()
 	for {
@@ -115,13 +111,9 @@ func (c *clientConn) servePost() {
 		resp, err := c.httpClient.Do(&req)
 		if err != nil {
 			if err = c.Payload.Store("post", err); err != nil {
-				logger.Error("store post:", err)
+				ll.Error(err, "Store post error")
 			}
-
-			if err = c.Close(); err != nil {
-				logger.Error("close client connect:", err)
-			}
-
+			_ = c.Close()
 			return
 		}
 
@@ -130,13 +122,9 @@ func (c *clientConn) servePost() {
 		if resp.StatusCode != http.StatusOK {
 			err = c.Payload.Store("post", fmt.Errorf("invalid response: %s(%d)", resp.Status, resp.StatusCode))
 			if err != nil {
-				logger.Error("store post:", err)
+				ll.Error(err, "Store post error")
 			}
-
-			if err = c.Close(); err != nil {
-				logger.Error("close client connect:", err)
-			}
-
+			_ = c.Close()
 			return
 		}
 
@@ -154,17 +142,14 @@ func (c *clientConn) getOpen() {
 
 	query.Set("t", utils.Timestamp())
 	req.URL.RawQuery = query.Encode()
-
+	var ll = logger.GetLogger("engineio.transport.polling")
 	resp, err := c.httpClient.Do(&req)
 	if err != nil {
 		if err = c.Payload.Store("get", err); err != nil {
-			logger.Error("getOpen store 1:", err)
+			ll.Error(err, "Store get error")
 		}
 
-		if err = c.Close(); err != nil {
-			logger.Error("close client connect:", err)
-		}
-
+		_ = c.Close()
 		return
 	}
 
@@ -181,18 +166,15 @@ func (c *clientConn) getOpen() {
 		mime := resp.Header.Get("Content-Type")
 		isSupportBinary, err = mimeIsSupportBinary(mime)
 		if err != nil {
-			logger.Error("check mime support binary:", err)
+			ll.Error(err, "Check mime support binary")
 		}
 	}
 
 	if err != nil {
 		if err = c.Payload.Store("get", err); err != nil {
-			logger.Error("getOpen store 2:", err)
+			ll.Error(err, "Store get error")
 		}
-
-		if err = c.Close(); err != nil {
-			logger.Error("close client connect:", err)
-		}
+		_ = c.Close()
 
 		return
 	}
@@ -200,8 +182,6 @@ func (c *clientConn) getOpen() {
 	c.remoteHeader.Store(resp.Header)
 
 	if err = c.Payload.FeedIn(resp.Body, isSupportBinary); err != nil {
-		logger.Error("payload feedin:", err)
-
 		return
 	}
 }
@@ -212,7 +192,7 @@ func (c *clientConn) serveGet() {
 
 	req.URL = &reqUrl
 	req.Method = http.MethodGet
-
+	var ll = logger.GetLogger("engineio.transport.polling")
 	query := req.URL.Query()
 	for {
 		query.Set("t", utils.Timestamp())
@@ -221,12 +201,9 @@ func (c *clientConn) serveGet() {
 		resp, err := c.httpClient.Do(&req)
 		if err != nil {
 			if err = c.Payload.Store("get", err); err != nil {
-				logger.Error("serveGet store 1:", err)
+				ll.Error(err, "Store get error")
 			}
-
-			if err = c.Close(); err != nil {
-				logger.Error("close client connect:", err)
-			}
+			_ = c.Close()
 
 			return
 		}
@@ -240,7 +217,7 @@ func (c *clientConn) serveGet() {
 			mime := resp.Header.Get("Content-Type")
 			isSupportBinary, err = mimeIsSupportBinary(mime)
 			if err != nil {
-				logger.Error("check mime support binary:", err)
+				ll.Error(err, "Check mime support binary")
 			}
 		}
 
@@ -248,12 +225,10 @@ func (c *clientConn) serveGet() {
 			discardBody(resp.Body)
 
 			if err = c.Payload.Store("get", err); err != nil {
-				logger.Error("serveGet store 2:", err)
+				ll.Error(err, "Store get error")
 			}
 
-			if err = c.Close(); err != nil {
-				logger.Error("close client connect:", err)
-			}
+			_ = c.Close()
 
 			return
 		}
@@ -269,12 +244,10 @@ func (c *clientConn) serveGet() {
 }
 
 func discardBody(body io.ReadCloser) {
-	_, err := io.Copy(ioutil.Discard, body)
+	var ll = logger.GetLogger("engineio.transport.polling")
+	_, err := io.Copy(io.Discard, body)
 	if err != nil {
-		logger.Error("copy from body resp to discard:", err)
+		ll.Error(err, "Copy from body resp to discard")
 	}
-
-	if err = body.Close(); err != nil {
-		logger.Error("body close:", err)
-	}
+	_ = body.Close()
 }

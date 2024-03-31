@@ -1,6 +1,7 @@
 package engineio
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -8,12 +9,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/googollee/go-socket.io/engineio/frame"
-	"github.com/googollee/go-socket.io/engineio/packet"
-	"github.com/googollee/go-socket.io/engineio/session"
-	"github.com/googollee/go-socket.io/engineio/transport"
-	"github.com/googollee/go-socket.io/logger"
+	"github.com/m4rc0nd35/go-socket.io/engineio/frame"
+	"github.com/m4rc0nd35/go-socket.io/engineio/packet"
+	"github.com/m4rc0nd35/go-socket.io/engineio/session"
+	"github.com/m4rc0nd35/go-socket.io/engineio/transport"
 )
+
+// Pauser is connection which can be paused and resumes.
+type Pauser interface {
+	Pause()
+	Resume()
+}
 
 // Opener is client connection which need receive open message first.
 type Opener interface {
@@ -27,6 +33,10 @@ type client struct {
 	context   interface{}
 	close     chan struct{}
 	closeOnce sync.Once
+}
+
+func (c *client) Done() <-chan struct{} {
+	return c.close
 }
 
 func (c *client) SetContext(v interface{}) {
@@ -66,19 +76,14 @@ func (c *client) NextReader() (session.FrameType, io.ReadCloser, error) {
 			}
 
 		case packet.CLOSE:
-			if err = c.Close(); err != nil {
-				logger.Error("close client with packet close:", err)
-			}
-
+			_ = c.Close()
 			return 0, nil, io.EOF
 
 		case packet.MESSAGE:
 			return session.FrameType(ft), r, nil
 		}
 
-		if err = r.Close(); err != nil {
-			logger.Error("close reader:", err)
-		}
+		_ = r.Close()
 	}
 }
 
@@ -104,9 +109,7 @@ func (c *client) RemoteHeader() http.Header {
 
 func (c *client) serve() {
 	defer func() {
-		if closeErr := c.conn.Close(); closeErr != nil {
-			logger.Error("close connect:", closeErr)
-		}
+		_ = c.conn.Close()
 	}()
 
 	for {
@@ -118,19 +121,15 @@ func (c *client) serve() {
 
 		w, err := c.conn.NextWriter(frame.String, packet.PING)
 		if err != nil {
-			logger.Error("get next writer with string frame and packet ping:", err)
-
 			return
 		}
 
-		if err = w.Close(); err != nil {
-			logger.Error("close writer:", err)
-
+		if err := w.Close(); err != nil {
 			return
 		}
 
 		if err = c.conn.SetWriteDeadline(time.Now().Add(c.params.PingInterval + c.params.PingTimeout)); err != nil {
-			logger.Error("set writer deadline:", err)
+			fmt.Printf("set writer's deadline error,msg:%s\n", err.Error())
 		}
 	}
 }

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket IO</title>
+</head>
+
+<body>
+    <button id="join">Join</button>
+    <button id="send">Send</button>
+    <script type="text/javascript">
+        let socket;
+        document.getElementById('send').addEventListener("click", function () {
+            socket.emit('notice', { message: `Hello WEB SocketIO ${Math.random()}` })
+        });
+
+        document.getElementById('join').addEventListener("click", function () {
+            if (!socket) {
+                console.log('Socket connected')
+                // socket = new io('https://agreeable-dog-28.webhook.cool', {
+                socket = new io('http://localhost:8090', {
+                    transports: ['websocket'],
+                    path: "/event"
+                })
+            } else {
+                console.log('reply registed')
+                socket.on('reply', msg => {
+                    console.log(msg)
+                })
+            }
+        });
+    </script>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+        integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+        crossorigin="anonymous"></script>
+</body>
+
+</html>

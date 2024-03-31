@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-
-	"github.com/googollee/go-socket.io/engineio/packet"
-	"github.com/googollee/go-socket.io/engineio/transport"
+	"github.com/m4rc0nd35/go-socket.io/engineio/packet"
+	"github.com/m4rc0nd35/go-socket.io/engineio/transport"
 )
 
 // conn implements base.Conn
@@ -62,13 +61,7 @@ func (c *conn) SetReadDeadline(t time.Time) error {
 }
 
 func (c *conn) SetWriteDeadline(t time.Time) error {
-	// TODO: is locking really needed for SetWriteDeadline? If so, what about
-	// the read deadline?
-	c.ws.writeLocker.Lock()
-	err := c.ws.SetWriteDeadline(t)
-	c.ws.writeLocker.Unlock()
-
-	return err
+	return c.ws.SetWriteDeadline(t)
 }
 
 func (c *conn) ServeHTTP(w http.ResponseWriter, r *http.Request) {

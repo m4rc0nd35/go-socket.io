@@ -5,12 +5,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"reflect"
 	"strings"
 
-	"github.com/googollee/go-socket.io/engineio/session"
-	"github.com/googollee/go-socket.io/logger"
+	"github.com/m4rc0nd35/go-socket.io/engineio/session"
 )
 
 const (
@@ -97,15 +95,12 @@ func (d *Decoder) DecodeHeader(header *Header, event *string) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
 func (d *Decoder) DecodeArgs(types []reflect.Type) ([]reflect.Value, error) {
 	r := d.packetReader.(io.Reader)
-	if d.isEvent {
-		r = io.MultiReader(strings.NewReader("["), r)
-	}
+	r = io.MultiReader(strings.NewReader("["), r, strings.NewReader("]"))
 
 	ret := make([]reflect.Value, len(types))
 	values := make([]interface{}, len(types))
@@ -123,7 +118,6 @@ func (d *Decoder) DecodeArgs(types []reflect.Type) ([]reflect.Value, error) {
 			err = nil
 		}
 		_ = d.DiscardLast()
-
 		return nil, err
 	}
 
@@ -155,7 +149,6 @@ func (d *Decoder) DecodeArgs(types []reflect.Type) ([]reflect.Value, error) {
 			return nil, err
 		}
 	}
-
 	return ret, nil
 }
 
@@ -169,7 +162,6 @@ func (d *Decoder) readUint64FromText(r byteReader) (uint64, bool, error) {
 			if hasRead {
 				return ret, true, nil
 			}
-
 			return 0, false, err
 		}
 
@@ -330,16 +322,14 @@ func (d *Decoder) readEvent(event *string) error {
 
 func (d *Decoder) readBuffer(ft session.FrameType, r io.ReadCloser) ([]byte, error) {
 	defer func() {
-		if err := r.Close(); err != nil {
-			logger.Error("close reader:", err)
-		}
+		_ = r.Close()
 	}()
 
 	if ft != session.BINARY {
 		return nil, errInvalidBinaryBufferType
 	}
 
-	return ioutil.ReadAll(r)
+	return io.ReadAll(r)
 }
 
 func (d *Decoder) detachBuffer(v reflect.Value, buffers []Buffer) error {

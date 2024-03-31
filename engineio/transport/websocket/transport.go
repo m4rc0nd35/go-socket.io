@@ -9,8 +9,8 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/googollee/go-socket.io/engineio/transport"
-	"github.com/googollee/go-socket.io/engineio/transport/utils"
+	"github.com/m4rc0nd35/go-socket.io/engineio/transport"
+	"github.com/m4rc0nd35/go-socket.io/engineio/transport/utils"
 )
 
 // DialError is the error when dialing to a server. It saves Response from
@@ -26,7 +26,7 @@ type Transport struct {
 	ReadBufferSize  int
 	WriteBufferSize int
 
-	Subprotocols     []string
+	SubProtocols     []string
 	TLSClientConfig  *tls.Config
 	HandshakeTimeout time.Duration
 
@@ -52,7 +52,7 @@ func (t *Transport) Dial(u *url.URL, requestHeader http.Header) (transport.Conn,
 		Proxy:            t.Proxy,
 		TLSClientConfig:  t.TLSClientConfig,
 		HandshakeTimeout: t.HandshakeTimeout,
-		Subprotocols:     t.Subprotocols,
+		Subprotocols:     t.SubProtocols,
 	}
 
 	switch u.Scheme {

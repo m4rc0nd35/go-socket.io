@@ -2,15 +2,14 @@ package polling
 
 import (
 	"bytes"
-	"fmt"
 	"html/template"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/googollee/go-socket.io/engineio/payload"
-	"github.com/googollee/go-socket.io/logger"
+	"github.com/m4rc0nd35/go-socket.io/engineio/payload"
+	"github.com/m4rc0nd35/go-socket.io/logger"
 )
 
 type serverConn struct {
@@ -66,7 +65,7 @@ func (c *serverConn) SetHeaders(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-XSS-Protection", "0")
 	}
 
-	// just in case the default behaviour gets changed and it has to handle an origin check
+	// just in case the default behaviour gets changed, and it has to handle an origin check
 	checkOrigin := Default.CheckOrigin
 	if c.transport.CheckOrigin != nil {
 		checkOrigin = c.transport.CheckOrigin
@@ -112,11 +111,8 @@ func (c *serverConn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			return
 		}
-		if c.supportBinary {
-			w.Header().Set("Content-Type", "application/octet-stream")
-		} else {
-			w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
-		}
+
+		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 
 		if err := c.Payload.FlushOut(w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -128,21 +124,18 @@ func (c *serverConn) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		mime := r.Header.Get("Content-Type")
 		isSupportBinary, err := mimeIsSupportBinary(mime)
 		if err != nil {
-			logger.Error("Polling Transport MethodPost mimeIsSupportBinary", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		if err := c.Payload.FeedIn(r.Body, isSupportBinary); err != nil {
-			logger.Error("Polling Transport MethodPost FeedIn", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-
+		ll := logger.GetLogger("engineio.transport.polling")
 		_, err = w.Write([]byte("ok"))
 		if err != nil {
-			logger.Error("Polling Transport MethodPost Write", err)
-			fmt.Printf("ack post err=%s\n", err.Error())
+			ll.Error(err, "Ack Post with error")
 		}
 
 	default:

@@ -3,16 +3,15 @@ package packet
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 
-	"github.com/googollee/go-socket.io/engineio/frame"
+	"github.com/m4rc0nd35/go-socket.io/engineio/frame"
 )
 
 type fakeConnReader struct {
 	frames []Frame
 }
 
-func NewFakeConnReader(frames []Frame) *fakeConnReader {
+func newFakeConnReader(frames []Frame) *fakeConnReader {
 	return &fakeConnReader{
 		frames: frames,
 	}
@@ -24,7 +23,7 @@ func (r *fakeConnReader) NextReader() (frame.Type, io.ReadCloser, error) {
 	}
 	f := r.frames[0]
 	r.frames = r.frames[1:]
-	return f.FType, ioutil.NopCloser(bytes.NewReader(f.Data)), nil
+	return f.FType, io.NopCloser(bytes.NewReader(f.Data)), nil
 }
 
 type fakeOneFrameConst struct {
@@ -60,5 +59,5 @@ func (r *fakeConstReader) NextReader() (frame.Type, io.ReadCloser, error) {
 		r.ft = frame.Binary
 		r.r.b = MESSAGE.BinaryByte()
 	}
-	return ft, ioutil.NopCloser(r.r), nil
+	return ft, io.NopCloser(r.r), nil
 }
