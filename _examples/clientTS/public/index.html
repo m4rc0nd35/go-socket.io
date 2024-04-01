@@ -18,14 +18,14 @@
 
         document.getElementById('join').addEventListener("click", function () {
             if (!socket) {
-                console.log('Socket connected')
                 // socket = new io('https://agreeable-dog-28.webhook.cool', {
                 socket = new io('http://localhost:8090', {
-                    transports: ['websocket'],
-                    path: "/event"
+                    transports: ['websocket']
                 })
-            } else {
-                console.log('reply registed')
+
+                socket.on('connect', msg => {
+                    console.log('connected')
+                })
                 socket.on('reply', msg => {
                     console.log(msg)
                 })
